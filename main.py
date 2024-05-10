@@ -30,7 +30,7 @@ def main(args):
     if args.source_dataset.upper() == "CIFAR-10":
         num_classes = 10
         model = WideResNet(depth=40, num_classes=num_classes, widen_factor=2, bias_last=True).to(device)
-        state_dict = torch.load(args.model_path)
+        state_dict = torch.load(args.model_path, map_location = device)
         _ = model.load_state_dict(state_dict, strict=True)
         print(f"[INFO] Model loaded from {args.model_path}, {_}")
 
@@ -54,7 +54,7 @@ def main(args):
             state_dict = torch.load(args.model_path)
             _ = model.load_state_dict(state_dict, strict=True)
             print(f"[INFO] Model loaded from {args.model_path}, {_}")
-        else:
+        elif args.model_path is None:
             state_dict = model_zoo.load_url(model_urls['resnet18'])
             _ = model.load_state_dict(state_dict, strict=True)
             print(f"[INFO] Model loaded from Torchvision URL for ResNet18, {_}")
@@ -106,15 +106,16 @@ def main(args):
         # Perform test-time adaptation
         best_error = 0
         model.train()
-        model = com(model,
+        _, model, _, _ = com(model,
                     tr_loader,
+                    te_loader,
                     args.criterion,
                     device,
                     lr=args.lr)
 
         # Compute after adaptation performance
         model.eval()
-        after_loss, after_acc = test(model, te_loader, device)
+        after_loss, after_acc, _ = test(model, te_loader, device)
         tta_error[domain] = (1 - after_acc) * 100
 
         if args.eval_before:

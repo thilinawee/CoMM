@@ -100,7 +100,7 @@ def com(net,
         # Compute accuracy on test set at every step
         net = net.eval()
         with torch.no_grad():
-            loss, acc = test(net, test_loader, device)
+            loss, acc, _ = test(net, test_loader, device)
 
         # Update best error
         if (1 - acc) < best_error:

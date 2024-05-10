@@ -5,9 +5,9 @@
 export CUDA_VISIBLE_DEVICES=0
 
 python -u main.py --model_path models/Hendrycks2020AugMixWRN_c10.pt \
-                  --data_path /home/wei/data2/Dataset/cifar/ \
-                  --source_dataset cifar-10 \
-                  --target_dataset cifar-10-c \
+                  --data_path /home/thilina/SSD2/datasets/cifar/ \
+                  --source_dataset CIFAR-10 \
+                  --target_dataset CIFAR-10-C \
                   --lr 0.005 \
                   --tta_batchsize 128 \
                   --severity 5 \
