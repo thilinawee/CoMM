@@ -1,0 +1,5 @@
+# pychache files
+*__pycache__
+
+# PyTorch binary files
+*.pt
