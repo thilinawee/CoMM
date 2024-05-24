@@ -4,13 +4,16 @@ from utils import *
 from methods import com
 
 import torch
-from torch.utils import model_zoo
-from network.wide_resnet import WideResNet
-from network.resnet import resnet18, resnet50, model_urls
+
+from logger.logger import TTALogger
+from tta_driver import TTADriver
+
+
+logger = TTALogger(__file__)
 
 print(
     f"[INFO] Is CUDA available: {torch.cuda.is_available()} \n[INFO] Number of GPU detected: {torch.cuda.device_count()}")
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 CORRUPTIONS = [
     'gaussian_noise', 'shot_noise', 'impulse_noise', 'defocus_blur',
@@ -149,13 +152,19 @@ if __name__ == "__main__":
     parser.add_argument('--severity', default=5, type=int, help='Severity of corruption')
     parser.add_argument('--verbose', action='store_true', default=False, help='Verbose')
     parser.add_argument('--seed', default=123, type=int, help='Random seed')
+    parser.add_argument('--drop_classes', nargs="+", type=int, help='list of classes going to drop')
     args = parser.parse_args()
 
     if args.model_path == "None":
         args.model_path = None
 
-    # print args
-    for arg, value in vars(args).items():
-        print(f"[INFO] {arg:<30}:  {str(value)}")
-    print("--------------------  Initializing TTA  --------------------")
-    main(args)
+    driver = TTADriver()
+    driver.display_params(args)
+    driver.init_random_seeds(args.seed)
+
+    driver.get_model(args)
+
+    # SOTA experiment
+    sota_train_data, sota_test_data = driver.prepare_data_loaders_for_sota_env(args)
+
+    # main(args)
