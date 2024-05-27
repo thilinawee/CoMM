@@ -150,7 +150,7 @@ def test(model, loader, device):
     # min_label = 50
     # max_label = 50
 
-    for ii, (images, labels) in enumerate(tqdm(loader)):
+    for ii, (images, labels) in enumerate(tqdm(loader, leave=False)):
         images = images.to(device)
         labels = labels.long().to(device)
         # outp = model(images)

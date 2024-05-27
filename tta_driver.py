@@ -1,5 +1,5 @@
 import os
-from typing import Tuple 
+from typing import Tuple
 
 import torch.utils
 import torch.utils.data
@@ -8,10 +8,12 @@ import torchvision
 import numpy as np
 import torch
 from torch.utils import model_zoo
+import torch.nn as nn
 
 from network.wide_resnet import WideResNet
 from network.resnet import resnet18, resnet50, model_urls
-from utils import prepare_cifar_loader, prepare_imagenet_loader, CORRUPTIONS
+from utils import prepare_cifar_loader, prepare_imagenet_loader, CORRUPTIONS, test
+from methods import com
 from logger.logger import TTALogger
 
 
@@ -45,8 +47,13 @@ class TTADriver:
         """
         Creates a data loader from a given dataset
         """
+    
+    def _reset_model(self, args, model):
+        state_dict = torch.load(args.model_path)
+        _ = model.load_state_dict(state_dict, strict=True)
+        logger.info(f"Resetting model to original state. {_}")
 
-    def get_model(self, args):
+    def get_model(self, args) -> nn.Module:
         """
         Get the pretrained model
         """
@@ -113,11 +120,43 @@ class TTADriver:
             
         return tta_train_loaders, tta_test_loaders
     
-    def apply_tta_for_sota_env(self, args):
+    def apply_tta_for_sota_env(self, args, tta_train_loaders, tta_test_loaders):
         """
         Applies the test time adaptation algorithm to the original dataset with distribution shifts.
         """
-        ...
+        device = self.device
+
+        tta_error = dict()
+        for domain in tta_train_loaders.keys():
+            
+            self._reset_model(args, self.model)
+            logger.info(f'domain - {domain}')
+
+            tr_loader = tta_train_loaders[domain][str(args.severity)]
+            te_loader = tta_test_loaders[domain][str(args.severity)]
+
+            logger.info(f"----------  Corruption: {domain}, Severity: {args.severity}  ------------")
+
+            if args.eval_before:
+                # Compute before adaptation performance
+                self.model.eval()
+                before_loss, before_acc, before_cos_acc = test(self.model, te_loader, device)
+
+            # Perform test-time adaptation
+            best_error = 0
+            self.model.train()
+            _, self.model, _, _ = com(self.model,
+                        tr_loader,
+                        te_loader,
+                        args.criterion,
+                        device,
+                        lr=args.lr)
+
+            # Compute after adaptation performance
+            self.model.eval()
+            after_loss, after_acc, _ = test(self.model, te_loader, device)
+            tta_error[domain] = (1 - after_acc) * 100
+
 
     def test_for_sota_env(self):
         """
