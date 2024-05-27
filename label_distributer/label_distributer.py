@@ -2,8 +2,11 @@ from typing import List
 
 import torch
 import torchvision
-from torch.utils.data import Subset
+from torch.utils.data import Subset, Dataset
 
+from logger.logger import TTALogger
+
+logger = TTALogger(__file__)
 
 class LabelDistributer:
     def __init__(
@@ -29,10 +32,9 @@ class ClassDropDistributer(LabelDistributer):
     Drops selected classes from the given dataset
     """
 
-    def __init__(self, dataset: torchvision.datasets, drop_list: List) -> None:
+    def __init__(self, dataset: Dataset, drop_list: List) -> None:
 
         super().__init__(dataset)
-
         self.drop_list = drop_list
 
     def generate_indices(self) -> List[int]:
@@ -45,9 +47,12 @@ class ClassDropDistributer(LabelDistributer):
 
         return include_indices
 
-    def generate_dataset(self) -> torchvision.datasets:
+    def generate_dataset(self) -> Dataset:
 
         indices = self.generate_indices()
         dataset = Subset(self.dataset, indices)
 
         return dataset
+    
+    def __call__(self) -> Dataset:
+        return self.generate_dataset()

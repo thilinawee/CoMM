@@ -1,1 +1,1 @@
-from .label_distributer import ClassDropDistributer
+from .label_distributer import LabelDistributer, ClassDropDistributer
