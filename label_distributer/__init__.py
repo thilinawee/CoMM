@@ -1,1 +1,5 @@
-from .label_distributer import LabelDistributer, ClassDropDistributer
+from .label_distributer import (
+    LabelDistributer,
+    ClassDropDistributer,
+    DownSamplingDistributer,
+)
