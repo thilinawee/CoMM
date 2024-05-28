@@ -1,5 +1,6 @@
 import os
 from typing import Tuple
+import random 
 
 import torch.utils
 import torch.utils.data
@@ -12,8 +13,10 @@ import torch.nn as nn
 
 from network.wide_resnet import WideResNet
 from network.resnet import resnet18, resnet50, model_urls
-from utils import prepare_cifar_loader, prepare_imagenet_loader, CORRUPTIONS, test
+from utils import prepare_cifar_loader, prepare_imagenet_loader, CORRUPTIONS, test, \
+                prepare_modified_cifar_loader
 from methods import com
+from label_distributer import ClassDropDistributer, DownSamplingDistributer
 from logger.logger import TTALogger
 
 
@@ -25,9 +28,9 @@ class TTADriver:
         self.model = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
     @staticmethod
     def init_random_seeds(seed):
+        random.seed(seed)
         torch.manual_seed(seed)
         np.random.seed(seed)
 
@@ -47,7 +50,7 @@ class TTADriver:
         """
         Creates a data loader from a given dataset
         """
-    
+
     def _reset_model(self, args, model):
         state_dict = torch.load(args.model_path)
         _ = model.load_state_dict(state_dict, strict=True)
@@ -96,7 +99,7 @@ class TTADriver:
 
         else:
             raise Exception(f"[INFO] Invalid dataset: {args.source_dataset}")
-        
+
         self.model = model
 
     def prepare_data_loaders_for_sota_env(self, args) -> Tuple[torch.utils.data.DataLoader]: 
@@ -117,10 +120,10 @@ class TTADriver:
                                                         severity=args.severity, corruptions=CORRUPTIONS)
             tta_test_loaders = prepare_imagenet_loader(data_path=data_path, train=False, batch_size=512,
                                                     severity=args.severity, corruptions=CORRUPTIONS)
-            
+
         return tta_train_loaders, tta_test_loaders
-    
-    def apply_tta_for_sota_env(self, args, tta_train_loaders, tta_test_loaders):
+
+    def apply_tta(self, args, tta_train_loaders, tta_test_loaders):
         """
         Applies the test time adaptation algorithm to the original dataset with distribution shifts.
         """
@@ -128,7 +131,7 @@ class TTADriver:
 
         tta_error = dict()
         for domain in tta_train_loaders.keys():
-            
+
             self._reset_model(args, self.model)
             logger.info(f'domain - {domain}')
 
@@ -157,19 +160,42 @@ class TTADriver:
             after_loss, after_acc, _ = test(self.model, te_loader, device)
             tta_error[domain] = (1 - after_acc) * 100
 
-
     def test_for_sota_env(self):
         """
         Evaluate the adapted sota.
         """
         ...
 
-    def prepare_data_loaders_for_novel_env(self): ...
-    def apply_tta_for_novel_env(self):
-        """
-        Applies the test time adaptation algorithm to the label imbalanced dataset with distribution shifts.
-        """
-        ...
+    def prepare_data_loaders_for_novel_env(self, args):
+        # Get dataloaders (OOD)
+        data_path = os.path.join(args.data_path, args.target_dataset.upper())
+        if not os.path.exists(data_path):
+            raise Exception(f"[INFO] Dataset not found at {data_path}")
+        batch_size = args.tta_batchsize
+
+        if args.source_dataset.upper().find("CIFAR") != -1:
+            tta_train_loaders = prepare_modified_cifar_loader(
+                data_path=data_path,
+                dataset_shift=ClassDropDistributer(drop_list=args.drop_classes),
+                train=True,
+                batch_size=batch_size,
+                severity=args.severity,
+                corruptions=CORRUPTIONS,
+            )
+
+            down_sample_ratio = (10-len(args.drop_classes))/10
+
+            tta_test_loaders = prepare_modified_cifar_loader(
+                data_path=data_path,
+                dataset_shift=DownSamplingDistributer(down_sample_ratio),
+                train=False,
+                batch_size=1024,
+                severity=args.severity,
+                corruptions=CORRUPTIONS,
+            )
+
+        # @TODO write test case for IMAGENET dataset as well
+        return tta_train_loaders, tta_test_loaders
 
     def test_for_novel_env(self): ...
 

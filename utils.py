@@ -1,3 +1,5 @@
+from typing import List
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,26 +12,19 @@ from tqdm import tqdm
 from torchvision.datasets import ImageFolder
 from PIL import Image
 
-" List of corruptions "
-CORRUPTIONS = [
-    'gaussian_noise', 'shot_noise', 'impulse_noise', 'defocus_blur',
-    'glass_blur', 'motion_blur', 'zoom_blur', 'snow', 'frost', 'fog',
-    'brightness', 'contrast', 'elastic_transform', 'pixelate',
-    'jpeg_compression'
-]
-# CORRUPTIONS = {'weather': ['snow', 'fog', 'frost'],
-#                'blur': ['zoom_blur', 'defocus_blur', 'glass_blur', 'motion_blur', 'gaussian_blur'],
-#                'noise': ['speckle_noise', 'shot_noise', 'impulse_noise', 'gaussian_noise'],
-#                'digital': ['spatter', 'jpeg_compression', 'pixelate', 'elastic_transform'],
-#                'color': ['brightness', 'contrast', 'saturate']}
+from label_distributer import LabelDistributer, ClassDropDistributer
 
-# imgnet_tr_transform = transforms.Compose([
-#     transforms.RandomResizedCrop(224),
-#     transforms.RandomHorizontalFlip(),
-#     transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.2),
-#     transforms.ToTensor(),
-#     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-# ])
+
+CORRUPTIONS = ['gaussian_noise']
+# @TODO uncomment all following corruptions
+# " List of corruptions "
+# CORRUPTIONS = [
+#     'gaussian_noise', 'shot_noise', 'impulse_noise', 'defocus_blur',
+#     'glass_blur', 'motion_blur', 'zoom_blur', 'snow', 'frost', 'fog',
+#     'brightness', 'contrast', 'elastic_transform', 'pixelate',
+#     'jpeg_compression'
+# ]
+
 
 imgnet_tr_transform = transforms.Compose([
     transforms.Resize(256),  # Resize the input images to 256x256
@@ -221,6 +216,51 @@ def prepare_cifar_loader(data_path: str, corruptions: dict, train: bool = False,
 
     return cifarc_loaders
 
+
+def prepare_modified_cifar_loader(
+    data_path: str,
+    dataset_shift: LabelDistributer,
+    corruptions: dict,
+    train: bool = False,
+    batch_size: int = 128,
+    severity: int = 5,
+):
+
+    labels = np.load(os.path.join(data_path, "labels.npy"))
+    cifarc_loaders = dict()
+
+    for corruption in corruptions:
+        images = np.load(os.path.join(data_path, corruption + ".npy"))
+        s_loader = dict()
+
+        if severity is None:
+            # Load all severity
+            for severity in range(5):
+                imgs = images[severity * 10000 : (severity + 1) * 10000]
+                dataset = dataset_shift(
+                    cifar.CifarDataset(imgs, labels, train=train))
+                s_loader[str(severity + 1)] = DataLoader(
+                    dataset,
+                    batch_size=batch_size,
+                    pin_memory=True,
+                    shuffle=True if train else False,
+                )
+        else:
+            imgs = images[(severity - 1) * 10000 : severity * 10000]
+            dataset = dataset_shift(
+                    cifar.CifarDataset(imgs, labels, train=train))
+            print("dataset_length", len(dataset))
+            s_loader[str(severity)] = DataLoader(
+                dataset,
+                batch_size=batch_size,
+                pin_memory=True,
+                shuffle=True if train else False,
+            )
+
+        print(dataset_shift)
+        cifarc_loaders[corruption] = s_loader
+
+    return cifarc_loaders
 
 @torch.no_grad()
 def get_ood_info(loader, model, device):

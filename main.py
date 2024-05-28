@@ -166,5 +166,9 @@ if __name__ == "__main__":
 
     # SOTA experiment
     sota_train_loaders, sota_test_loaders = driver.prepare_data_loaders_for_sota_env(args)
-    driver.apply_tta_for_sota_env(args, sota_train_loaders, sota_test_loaders)
+    driver.apply_tta(args, sota_train_loaders, sota_test_loaders)
+
+    # Novel Experiment
+    novel_train_loaders, novel_test_loaders = driver.prepare_data_loaders_for_novel_env(args)
+    driver.apply_tta(args, novel_train_loaders, novel_test_loaders)
     # main(args)
