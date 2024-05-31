@@ -13,4 +13,5 @@ python -u main.py --model_path models/Hendrycks2020AugMixWRN_c10.pt \
                   --severity 5 \
                   --criterion entropy \
                   --network wrn-40x2 \
-                  --drop_classes 0 2 5
+                  --drop_classes 0 8 1 9 \
+                  --eval_before 1
