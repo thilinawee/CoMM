@@ -110,11 +110,27 @@ class TTADriver:
         batch_size = args.tta_batchsize
 
         if args.source_dataset.upper().find("CIFAR") != -1:
-            tta_train_loaders = prepare_cifar_loader(data_path=data_path, train=True, batch_size=batch_size,
-                                                    severity=args.severity, corruptions=CORRUPTIONS)
-            tta_test_loaders = prepare_cifar_loader(data_path=data_path, train=False, batch_size=1024,
-                                                    severity=args.severity, corruptions=CORRUPTIONS)
+            down_sample_ratio = (10-len(args.drop_classes))/10
 
+
+            tta_train_loaders = prepare_modified_cifar_loader(
+                data_path=data_path,
+                dataset_shift=DownSamplingDistributer(down_sample_ratio),
+                train=True,
+                batch_size=batch_size,
+                severity=args.severity,
+                corruptions=CORRUPTIONS,
+            )
+
+            tta_test_loaders = prepare_modified_cifar_loader(
+                data_path=data_path,
+                dataset_shift=DownSamplingDistributer(down_sample_ratio),
+                train=False,
+                batch_size=1024,
+                severity=args.severity,
+                corruptions=CORRUPTIONS,
+            )
+ 
         elif args.source_dataset.upper().find("IMAGENET") != -1:
             tta_train_loaders = prepare_imagenet_loader(data_path=data_path, train=True, batch_size=batch_size,
                                                         severity=args.severity, corruptions=CORRUPTIONS)
