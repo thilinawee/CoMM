@@ -142,7 +142,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CoMM Test-time Adaptation")
     parser.add_argument('--model_path', type=str, default=None, help='Path to model checkpoint')
     parser.add_argument('--data_path', type=str, default="/home/wei/data2/Dataset/cifar/", help='Path to data')
-    parser.add_argument('--eval_before', action='store_true', default=False, help='Evaluate before adaptation')
+    parser.add_argument('--eval_before', type=bool, default=False, help='Evaluate before adaptation')
     parser.add_argument('--source_dataset', type=str, default="cifar-10", help='Source dataset')
     parser.add_argument('--target_dataset', type=str, default="cifar-10-c", help='Target dataset')
     parser.add_argument('--criterion', type=str, default="cosine", help='Loss function to use')
@@ -166,9 +166,9 @@ if __name__ == "__main__":
 
     # SOTA experiment
     sota_train_loaders, sota_test_loaders = driver.prepare_data_loaders_for_sota_env(args)
-    driver.apply_tta(args, sota_train_loaders, sota_test_loaders)
+    driver.apply_tta(args, 'sota', sota_train_loaders, sota_test_loaders)
 
     # Novel Experiment
     novel_train_loaders, novel_test_loaders = driver.prepare_data_loaders_for_novel_env(args)
-    driver.apply_tta(args, novel_train_loaders, novel_test_loaders)
+    driver.apply_tta(args, 'novel', novel_train_loaders, sota_test_loaders)
     # main(args)
