@@ -17,6 +17,7 @@ from utils import prepare_cifar_loader, prepare_imagenet_loader, CORRUPTIONS, te
                 prepare_modified_cifar_loader
 from methods import com
 from label_distributer import ClassDropDistributer, DownSamplingDistributer
+from report_gen import JsonDump
 from logger.logger import TTALogger
 
 
@@ -139,12 +140,12 @@ class TTADriver:
 
         return tta_train_loaders, tta_test_loaders
 
-    def apply_tta(self, args, tta_train_loaders, tta_test_loaders):
+    def apply_tta(self, args, ctx, tta_train_loaders, tta_test_loaders):
         """
         Applies the test time adaptation algorithm to the original dataset with distribution shifts.
         """
         device = self.device
-
+        json_gen = JsonDump(ctx, args.severity)
         tta_error = dict()
         for domain in tta_train_loaders.keys():
 
@@ -160,6 +161,8 @@ class TTADriver:
                 # Compute before adaptation performance
                 self.model.eval()
                 before_loss, before_acc, before_cos_acc = test(self.model, te_loader, device)
+                logger.info(f"Accuracy before adaptation - {before_acc}")
+                json_gen.collect_corruption_data(domain, "original_acc", before_acc)
 
             # Perform test-time adaptation
             best_error = 0
@@ -175,6 +178,10 @@ class TTADriver:
             self.model.eval()
             after_loss, after_acc, _ = test(self.model, te_loader, device)
             tta_error[domain] = (1 - after_acc) * 100
+            json_gen.collect_corruption_data(domain, "adapted_acc", after_acc)
+            logger.info(f"Accuracy after adaptation - {after_acc}")
+
+        json_gen.dump_json()
 
     def test_for_sota_env(self):
         """
