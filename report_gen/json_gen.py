@@ -3,11 +3,11 @@ import os
 
 
 class JsonDump:
-    def __init__(self, name, severity):
+    def __init__(self, path, name):
         
-        self._path = '/home/thilina/CoMM/reports'
+        self._path = path
         self._data = {}
-        self._out_name = f"{self._path}/{name}_s{severity}.json"
+        self._out_name = f"{self._path}/{name}.json"
         
     def dump_json(self):
 

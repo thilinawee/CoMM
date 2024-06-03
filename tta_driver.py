@@ -17,7 +17,7 @@ from utils import prepare_cifar_loader, prepare_imagenet_loader, CORRUPTIONS, te
                 prepare_modified_cifar_loader
 from methods import com
 from label_distributer import ClassDropDistributer, DownSamplingDistributer
-from report_gen import JsonDump
+from report_gen import JsonDump, DirGen
 from logger.logger import TTALogger
 
 
@@ -28,12 +28,21 @@ class TTADriver:
     def __init__(self):
         self.model = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+        self._report_path = None
     @staticmethod
     def init_random_seeds(seed):
         random.seed(seed)
         torch.manual_seed(seed)
         np.random.seed(seed)
+
+    def _create_report_dirs(self, args):
+        """
+        Create directories to store the reports.
+        """
+        dir_gen = DirGen(args)
+        dir_path = dir_gen.create_dir()
+        
+        self._report_path = dir_path
 
     def read_params(self):
         """
@@ -145,7 +154,7 @@ class TTADriver:
         Applies the test time adaptation algorithm to the original dataset with distribution shifts.
         """
         device = self.device
-        json_gen = JsonDump(ctx, args.severity)
+        json_gen = JsonDump(self._report_path, ctx)
         tta_error = dict()
         for domain in tta_train_loaders.keys():
 
