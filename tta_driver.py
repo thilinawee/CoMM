@@ -140,7 +140,7 @@ class TTADriver:
 
             tta_test_loaders = prepare_modified_cifar_loader(
                 data_path=data_path,
-                dataset_shift=DownSamplingDistributer(down_sample_ratio),
+                dataset_shift=DownSamplingDistributer(1.0),
                 train=False,
                 batch_size=1024,
                 severity=args.severity,
@@ -225,7 +225,7 @@ class TTADriver:
 
             tta_test_loaders = prepare_modified_cifar_loader(
                 data_path=data_path,
-                dataset_shift=DownSamplingDistributer(down_sample_ratio),
+                dataset_shift=DownSamplingDistributer(1.0),
                 train=False,
                 batch_size=1024,
                 severity=args.severity,
