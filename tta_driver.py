@@ -19,7 +19,7 @@ from methods import com
 from label_distributer import ClassDropDistributer, DownSamplingDistributer
 from report_gen import JsonDump, DirGen
 from logger.logger import TTALogger
-
+from tta_config import TTAConfig
 
 logger = TTALogger(__file__)
 
@@ -29,6 +29,12 @@ class TTADriver:
         self.model = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._report_path = None
+
+        self._args = TTAConfig.get_args()
+
+    def set_gpu_id(self, gpu_id):
+        os.environ["CUDA_VISIBLE_DEVICES"] = gpu_id
+
     @staticmethod
     def init_random_seeds(seed):
         random.seed(seed)
@@ -230,15 +236,6 @@ class TTADriver:
         return tta_train_loaders, tta_test_loaders
 
     def test_for_novel_env(self): ...
-
-    def display_params(self, args):
-        """
-        Display the important parameters of the input script.
-        """
-        # print args
-        for arg, value in vars(args).items():
-            logger.info(f"{arg:<30}:  {str(value)}")
-        print("--------------------  Initializing TTA  --------------------")
 
     def collect_results_for_sota_env(self):
         """

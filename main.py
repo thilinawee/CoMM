@@ -7,7 +7,7 @@ import torch
 
 from logger.logger import TTALogger
 from tta_driver import TTADriver
-
+from tta_config import TTAConfig
 
 logger = TTALogger(__file__)
 
@@ -153,13 +153,20 @@ if __name__ == "__main__":
     parser.add_argument('--verbose', action='store_true', default=False, help='Verbose')
     parser.add_argument('--seed', default=123, type=int, help='Random seed')
     parser.add_argument('--drop_classes', nargs="+", type=int, help='list of classes going to drop')
+    parser.add_argument('--drop_ratio', default=0.1, type=float, help='Ratio of classes to drop')
     parser.add_argument('--report_dir', type=str, default="reports", help='Directory to save reports')
-    args = parser.parse_args()
+    parser.add_argument('--gpu_id', type=str, default="0", help='GPU ID')
+    arguements = parser.parse_args()
 
-    if args.model_path == "None":
-        args.model_path = None
+    if arguements.model_path == "None":
+        arguements.model_path = None
+
+    config = TTAConfig()
+    config.set_args(arguements)
+    args = config.get_args()
 
     driver = TTADriver()
+    driver.set_gpu_id(args.gpu_id)
     driver.display_params(args)
     driver.init_random_seeds(args.seed)
     driver._create_report_dirs(args)
