@@ -28,23 +28,30 @@ class LabelDistributer:
         self._dataset = value
 
 
-class ClassDropDistributer(LabelDistributer):
+class ClassFilter(LabelDistributer):
     """
-    Drops selected classes from the given dataset
+    Drop or include  selected classes from the given dataset
     """
 
-    def __init__(self, drop_list: List) -> None:
+    def __init__(self, class_list: List, drop: bool = True) -> None:
 
         super().__init__()
-        self.drop_list = drop_list
+        self.class_list = class_list
+        self._drop = drop
 
     def generate_indices(self) -> List[int]:
 
         include_indices = []
 
-        for ii, (_, label) in enumerate(self.dataset):
-            if label not in self.drop_list:
-                include_indices.append(ii)
+        if self._drop:
+            # remove the classes in the class_list from the dataset
+            for ii, (_, label) in enumerate(self.dataset):
+                if label not in self.class_list:
+                    include_indices.append(ii)
+        else:
+            for ii, (_, label) in enumerate(self.dataset):
+                if label in self.class_list:
+                    include_indices.append(ii)
 
         return include_indices
 
@@ -117,7 +124,8 @@ class DownSamplingDistributer(LabelDistributer):
 
     def __repr__(self):
         string = ""
-        for cls, count in self._n_class_samples.items():
-            string += f"{cls} - {count}\n"
-
+        string += f"Downsampling ratio: {self.ratio}\t"
+        string += f"Original Total Samples: {len(self.dataset)}\t"
+        string += f"New Samples per class: {list(self._n_class_samples.values())[0]}\n"
         return string
+       

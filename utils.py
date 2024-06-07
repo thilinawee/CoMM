@@ -12,7 +12,7 @@ from tqdm import tqdm
 from torchvision.datasets import ImageFolder
 from PIL import Image
 
-from label_distributer import LabelDistributer, ClassDropDistributer
+from label_distributer import LabelDistributer, ClassFilter
 
 
 CORRUPTIONS = ['gaussian_noise']
@@ -219,7 +219,7 @@ def prepare_cifar_loader(data_path: str, corruptions: dict, train: bool = False,
 
 def prepare_modified_cifar_loader(
     data_path: str,
-    dataset_shift: LabelDistributer,
+    label_distributer: LabelDistributer,
     corruptions: dict,
     train: bool = False,
     batch_size: int = 128,
@@ -237,7 +237,7 @@ def prepare_modified_cifar_loader(
             # Load all severity
             for severity in range(5):
                 imgs = images[severity * 10000 : (severity + 1) * 10000]
-                dataset = dataset_shift(
+                dataset = label_distributer(
                     cifar.CifarDataset(imgs, labels, train=train))
                 s_loader[str(severity + 1)] = DataLoader(
                     dataset,
@@ -247,9 +247,9 @@ def prepare_modified_cifar_loader(
                 )
         else:
             imgs = images[(severity - 1) * 10000 : severity * 10000]
-            dataset = dataset_shift(
+            dataset = label_distributer(
                     cifar.CifarDataset(imgs, labels, train=train))
-            print("dataset_length", len(dataset))
+            
             s_loader[str(severity)] = DataLoader(
                 dataset,
                 batch_size=batch_size,
@@ -257,7 +257,6 @@ def prepare_modified_cifar_loader(
                 shuffle=True if train else False,
             )
 
-        print(dataset_shift)
         cifarc_loaders[corruption] = s_loader
 
     return cifarc_loaders

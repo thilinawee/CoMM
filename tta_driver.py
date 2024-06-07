@@ -143,7 +143,7 @@ class TTADriver:
 
             tta_train_loaders = prepare_modified_cifar_loader(
                 data_path=data_path,
-                dataset_shift=DownSamplingDistributer(down_sample_ratio),
+                label_distributer=DownSamplingDistributer(down_sample_ratio),
                 train=True,
                 batch_size=batch_size,
                 severity=args.severity,
@@ -152,7 +152,7 @@ class TTADriver:
 
             tta_test_loaders = prepare_modified_cifar_loader(
                 data_path=data_path,
-                dataset_shift=DownSamplingDistributer(1.0),
+                label_distributer=DownSamplingDistributer(1.0),
                 train=False,
                 batch_size=1024,
                 severity=args.severity,
@@ -226,18 +226,16 @@ class TTADriver:
         if args.source_dataset.upper().find("CIFAR") != -1:
             tta_train_loaders = prepare_modified_cifar_loader(
                 data_path=data_path,
-                dataset_shift=ClassDropDistributer(drop_list=args.drop_classes),
+                label_distributer=ClassFilter(class_list=args.drop_classes),
                 train=True,
                 batch_size=batch_size,
                 severity=args.severity,
                 corruptions=CORRUPTIONS,
             )
 
-            down_sample_ratio = (10-len(args.drop_classes))/10
-
             tta_test_loaders = prepare_modified_cifar_loader(
                 data_path=data_path,
-                dataset_shift=DownSamplingDistributer(1.0),
+                label_distributer=DownSamplingDistributer(1.0),
                 train=False,
                 batch_size=1024,
                 severity=args.severity,

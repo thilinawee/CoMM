@@ -1,5 +1,5 @@
 from .label_distributer import (
     LabelDistributer,
-    ClassDropDistributer,
+    ClassFilter,
     DownSamplingDistributer,
 )
