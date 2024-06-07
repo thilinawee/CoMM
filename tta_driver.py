@@ -20,6 +20,7 @@ from label_distributer import ClassDropDistributer, DownSamplingDistributer
 from report_gen import JsonDump, DirGen
 from logger.logger import TTALogger
 from tta_config import TTAConfig
+from dataloader.cifar import CIFAR10Config, CIFAR100Config
 
 logger = TTALogger(__file__)
 
@@ -31,6 +32,7 @@ class TTADriver:
         self._report_path = None
 
         self._args = TTAConfig.get_args()
+        self._dataset_metadata = self._get_dataset_metadata()
 
     def set_gpu_id(self, gpu_id):
         os.environ["CUDA_VISIBLE_DEVICES"] = gpu_id
@@ -66,6 +68,16 @@ class TTADriver:
         """
         Creates a data loader from a given dataset
         """
+
+    def _get_dataset_metadata(self):
+        dataset = self._args.source_dataset.upper()
+
+        if dataset == "CIFAR-10":
+            return CIFAR10Config()
+        elif dataset == "CIFAR-100":
+            return CIFAR100Config()
+        else:
+            raise Exception(f"[INFO] Invalid dataset: {dataset}")
 
     def _reset_model(self, args, model):
         state_dict = torch.load(args.model_path)
@@ -126,7 +138,7 @@ class TTADriver:
         batch_size = args.tta_batchsize
 
         if args.source_dataset.upper().find("CIFAR") != -1:
-            down_sample_ratio = (10-len(args.drop_classes))/10
+            down_sample_ratio = (self._dataset_metadata.num_classes-len(args.drop_classes))/self._dataset_metadata.num_classes
 
 
             tta_train_loaders = prepare_modified_cifar_loader(

@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import torch
 import torch.nn as nn
 import torch.utils.data as data
@@ -5,6 +7,22 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
 import numpy as np
+
+
+@dataclass
+class CIFAR10Config:
+    name: str = "CIFAR-10"
+    num_classes: int = 10
+    num_train: int = 50000
+    num_test: int = 10000
+
+
+@dataclass
+class CIFAR100Config:
+    name: str = "CIFAR-100"
+    num_classes: int = 100
+    num_train: int = 50000
+    num_test: int = 10000
 
 
 class CifarDataset(data.Dataset):
