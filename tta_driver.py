@@ -219,7 +219,8 @@ class TTADriver:
 
             # computer accuracy for partial test loaders if they are provided
             if partial_test_loaders is not None:
-                partial_loss, partial_acc, _ = test(self.model, partial_test_loaders, device)
+                partial_test_loader = partial_test_loaders[domain][str(args.severity)]
+                partial_loss, partial_acc, _ = test(self.model, partial_test_loader, device)
                 json_gen.collect_corruption_data(domain, "partial_acc", partial_acc)
 
         json_gen.dump_json()
@@ -269,7 +270,7 @@ class TTADriver:
 
         if self._args.source_dataset.upper().find("CIFAR") != -1:
             test_loaders = prepare_modified_cifar_loader(
-                data_path=self._data_path,
+                data_path=self._dataset_path,
                 label_distributer=label_distributer,
                 train=False,
                 batch_size=1024,
