@@ -16,7 +16,7 @@ from network.resnet import resnet18, resnet50, model_urls
 from utils import prepare_cifar_loader, prepare_imagenet_loader, CORRUPTIONS, test, \
                 prepare_modified_cifar_loader
 from methods import com
-from label_distributer import ClassDropDistributer, DownSamplingDistributer
+from label_distributer import ClassFilter, DownSamplingDistributer
 from report_gen import JsonDump, DirGen
 from logger.logger import TTALogger
 from tta_config import TTAConfig
@@ -33,6 +33,7 @@ class TTADriver:
 
         self._args = TTAConfig.get_args()
         self._dataset_metadata = self._get_dataset_metadata()
+        self._dataset_path = self._get_dataset_path()
 
     def set_gpu_id(self, gpu_id):
         os.environ["CUDA_VISIBLE_DEVICES"] = gpu_id
@@ -43,6 +44,13 @@ class TTADriver:
         torch.manual_seed(seed)
         np.random.seed(seed)
 
+    def _get_dataset_path(self):
+        data_path = os.path.join(self._args.data_path, self._args.target_dataset.upper())
+        if not os.path.exists(data_path):
+            raise Exception(f"[INFO] Dataset not found at {data_path}")        
+
+        return data_path
+    
     def _create_report_dirs(self, args):
         """
         Create directories to store the reports.
@@ -167,7 +175,7 @@ class TTADriver:
 
         return tta_train_loaders, tta_test_loaders
 
-    def apply_tta(self, args, ctx, tta_train_loaders, tta_test_loaders):
+    def apply_tta(self, args, ctx, tta_train_loaders, tta_test_loaders, partial_test_loaders = None):
         """
         Applies the test time adaptation algorithm to the original dataset with distribution shifts.
         """
@@ -201,12 +209,18 @@ class TTADriver:
                         device,
                         lr=args.lr)
 
-            # Compute after adaptation performance
             self.model.eval()
+            # Compute after adaptation performance
+
             after_loss, after_acc, _ = test(self.model, te_loader, device)
             tta_error[domain] = (1 - after_acc) * 100
             json_gen.collect_corruption_data(domain, "adapted_acc", after_acc)
             logger.info(f"Accuracy after adaptation - {after_acc}")
+
+            # computer accuracy for partial test loaders if they are provided
+            if partial_test_loaders is not None:
+                partial_loss, partial_acc, _ = test(self.model, partial_test_loaders, device)
+                json_gen.collect_corruption_data(domain, "partial_acc", partial_acc)
 
         json_gen.dump_json()
 
@@ -244,6 +258,26 @@ class TTADriver:
 
         # @TODO write test case for IMAGENET dataset as well
         return tta_train_loaders, tta_test_loaders
+
+    def prepare_data_loaders_for_unseen_labels(self):
+        """
+        Prepare the data loaders for classes that are not seen during adaptation.
+        """
+
+        # only include the following classes
+        label_distributer = ClassFilter(class_list=self._args.drop_classes, drop=False)
+
+        if self._args.source_dataset.upper().find("CIFAR") != -1:
+            test_loaders = prepare_modified_cifar_loader(
+                data_path=self._data_path,
+                label_distributer=label_distributer,
+                train=False,
+                batch_size=1024,
+                severity=self._args.severity,
+                corruptions=CORRUPTIONS,
+            )
+
+        return test_loaders
 
     def test_for_novel_env(self): ...
 
