@@ -164,10 +164,12 @@ if __name__ == "__main__":
     config = TTAConfig()
     config.set_args(arguements)
     args = config.get_args()
+    config.print_args()
 
+    
     driver = TTADriver()
     driver.set_gpu_id(args.gpu_id)
-    driver.display_params(args)
+
     driver.init_random_seeds(args.seed)
     driver._create_report_dirs(args)
     driver.get_model(args)
